@@ -15,7 +15,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class Server {
+	
+	private static final Logger logger = LogManager.getLogger(Server.class);
 
 	private int port;
 	private ExecutorService threadPool;
@@ -28,18 +33,13 @@ public class Server {
 	}
 
 	private void handleRequest(Socket clientSocket) {
-		String requestPath = null;
-		// Read and log the HTTP request
+		String requestPath = null;		// Read and log the HTTP request
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 				PrintWriter out = new PrintWriter(clientSocket.getOutputStream());) {
 			String line;
 			List<String> request = new ArrayList<>();
 			while ((line = in.readLine()) != null && !line.isEmpty()) {
 				request.add(line);
-
-				if (line.startsWith("GET")) {
-					requestPath = line.split(" ")[1];
-				}
 			}
 
 			// Forward the request to the backend server (localhost:8081)
@@ -111,7 +111,7 @@ public class Server {
 
 	                        portsList.remove(Integer.valueOf(port)); // Remove the port from the list
 	                    } else {
-	                        System.out.println("Server healthy on port: " + port);
+	                        logger.info("Server healthy on port: " + port);
 	                        
 	                        if(!portsList.contains(port)) {
 	                        	portsList.add(port);
@@ -120,12 +120,12 @@ public class Server {
 	                }
 
 	            } catch (IOException e) {
-	                System.err.println("Error reading response or sending request: " + e.getMessage());
+	                logger.error("Error reading response or sending request: " + e.getMessage());
 	                handleServerFailure(port);
 	            }
 
 	        } catch (IOException e) {
-	            System.err.println("Error connecting to server on port " + port + ": " + e.getMessage());
+	            logger.error("Error connecting to server on port " + port + ": " + e.getMessage());
 	            handleServerFailure(port);
 	        }
 	    });
@@ -156,7 +156,7 @@ public class Server {
 		        performHealthCheck(); // Perform health check
 		    } catch (Exception e) {
 		        // Log the error but do not terminate the health check schedule
-		        System.err.println("Error during health check: " + e.getMessage());
+		        logger.error("Error during health check: " + e.getMessage());
 		    }
 		}, 0, 5, TimeUnit.SECONDS); // Execute every 5 seconds
 
@@ -164,7 +164,7 @@ public class Server {
 
 			while (true) {
 				Socket clientSocket = server.accept();
-				System.out.println("Recieved request from " + clientSocket.getInetAddress() + "on port " + port);
+				logger.info("Recieved request from " + clientSocket.getInetAddress() + "on port " + port);
 				threadPool.submit(() -> handleRequest(clientSocket));
 			}
 		} catch (IOException e) {
